@@ -217,6 +217,7 @@ function onWindowResize() {
 
 var rayLineOld = null
 var oldColorObject = {}
+var comments = []
 
 function animate() {
 
@@ -224,8 +225,7 @@ function animate() {
 
     const time = performance.now();
     if (reticleGeometry) {
-        console.log(reticleGeometry)
-        reticleGeometry.parameters.thetaStart = Math.floor(time)
+        reticleGeometry.parameters.thetaStart = Math.floor(time*10)
     }
 
     if (controls.isLocked === true) {
@@ -278,6 +278,23 @@ function animate() {
             if (mouseDown) {
                 console.log("clicked")
                 ifcLoader.ifcManager.createSubset({ scene: scene, modelID: model.modelID, ids: [id], material: selectionMaterial })
+                const input = document.createElement("input");  
+                input.type = "text";  
+                input.className = "css-class-name";
+                input.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        var element = document.createElement('a');
+                        element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(input.value));
+                        element.setAttribute('download', "comment.txt");
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element)
+                        document.body.removeChild(input)
+                    }
+                });
+                document.body.appendChild(input);
+                controls.unlock()
+                input.focus()
             }
 
             // oldColorObject[found.object] = found.object.material.color
