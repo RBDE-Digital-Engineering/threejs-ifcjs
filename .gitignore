@@ -1,3 +1,4 @@
 web-ifc.wasm
 bundle.js
 node_modules/
+.cjsescache

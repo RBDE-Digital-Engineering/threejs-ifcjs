@@ -10,7 +10,7 @@ import {
     Raycaster,
     Box3,
     RingBufferGeometry
-} from 'three';
+} from 'three'; 
 import { IFCWALLSTANDARDCASE, IFCWALL, IFCSLAB, IFCWINDOW, IFCDOOR, IFCPLATE, IFCMEMBER } from 'web-ifc';
 import { IFCLoader } from 'web-ifc-three/IFCLoader';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
@@ -19,6 +19,7 @@ import * as THREE from 'three';
 
 import { PointerLockControls } from './modules/PointerLockControls.js';
 import { Model } from 'web-ifc-viewer/dist/components/display/clipping-planes/clipping-edges.js'
+import BCF from './modules/BCF.js';
 
 type xyz = {
     x: number;
@@ -65,7 +66,7 @@ function init() {
     const instructions = document.getElementById('instructions');
 
     if (!blocker)
-        throw new Error("HTML Element missing: instructions")
+        throw new Error("HTML Element missing: blocker")
     if (!instructions)
         throw new Error("HTML Element missing: instructions")
 
@@ -246,8 +247,8 @@ function animate() {
                 console.log("clicked")
                 ifcLoader.ifcManager.createSubset({ scene: scene, modelID: model.modelID, ids: [id], material: selectionMaterial, removePrevious: true})
                 const input = document.createElement("input");  
-                input.type = "text";  
-                input.className = "css-class-name";
+                input.type = "text"
+                input.className = "css-class-name"
                 input.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
                         var element = document.createElement('a');
@@ -262,6 +263,10 @@ function animate() {
                 document.body.appendChild(input);
                 controls.unlock()
                 input.focus()
+
+                let bcf = new BCF()
+                bcf.initBcf()
+                bcf.downloadBcf()
             }
 
             // oldColorObject[found.object] = found.object.material.color
