@@ -1,21 +1,15 @@
 import {
-    AmbientLight,
     Matrix4,
-    AxesHelper,
-    DirectionalLight,
-    GridHelper,
     PerspectiveCamera,
     Scene,
     BoxGeometry,
     Mesh,
     InstancedMesh,
-    Quaternion,
     MeshLambertMaterial,
     WebGLRenderer,
     Raycaster,
-    Vector3,
     Box3,
-    Color
+    RingBufferGeometry
 } from 'three';
 import { IFCWALLSTANDARDCASE, IFCWALL, IFCSLAB, IFCWINDOW, IFCDOOR, IFCPLATE, IFCMEMBER } from 'web-ifc';
 import { IFCLoader } from 'web-ifc-three/IFCLoader';
@@ -24,12 +18,19 @@ import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-
 import * as THREE from 'three';
 
 import { PointerLockControls } from './modules/PointerLockControls.js';
+import { Model } from 'web-ifc-viewer/dist/components/display/clipping-planes/clipping-edges.js'
 
-let camera, scene, renderer, controls, model, reticleGeometry;
+type xyz = {
+    x: number;
+    y: number;
+    z: number;
+}
 
-const objects = [];
+let camera: PerspectiveCamera, scene: Scene, renderer:WebGLRenderer, controls: PointerLockControls, model: Model, reticleGeometry:RingBufferGeometry;
 
-let raycaster;
+const objects: Mesh[] = [];
+
+let raycaster: Raycaster;
 
 let moveForward = false;
 let moveBackward = false;
@@ -41,8 +42,6 @@ let mouseDown = false;
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const vertex = new THREE.Vector3();
-const color = new THREE.Color();
 
 init();
 animate();
@@ -64,6 +63,11 @@ function init() {
 
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
+
+    if (!blocker)
+        throw new Error("HTML Element missing: instructions")
+    if (!instructions)
+        throw new Error("HTML Element missing: instructions")
 
     instructions.addEventListener('click', function () {
 
@@ -87,7 +91,7 @@ function init() {
 
     scene.add(controls.getObject());
 
-    const onKeyDown = function (event) {
+    const onKeyDown = function (event:KeyboardEvent) {
 
         switch (event.code) {
 
@@ -120,7 +124,7 @@ function init() {
 
     };
 
-    const onKeyUp = function (event) {
+    const onKeyUp = function (event:KeyboardEvent) {
 
         switch (event.code) {
 
@@ -180,8 +184,6 @@ function init() {
 
     }
 
-    //
-    var CursorSize = 500
     reticleGeometry = new THREE.RingBufferGeometry(0.005, 0.01, 3)
     var reticle = new THREE.Mesh(
         reticleGeometry,
@@ -215,10 +217,6 @@ function onWindowResize() {
 
 }
 
-var rayLineOld = null
-var oldColorObject = {}
-var comments = []
-
 function animate() {
 
     requestAnimationFrame(animate);
@@ -230,31 +228,6 @@ function animate() {
 
     if (controls.isLocked === true) {
 
-        // raycaster.ray.origin.y -= 10;
-        // raycaster.ray.direction.copy(controls.getObject().direction)
-
-        // var mouse3D = new THREE.Vector3();
-        // mouse3D.normalize();
-        // controls.getDirection(mouse3D);
-
-        // var rayEnd = new THREE.Vector3();
-
-        // rayEnd.addVectors(controls.getObject().position, mouse3D.multiplyScalar(100));
-
-        // const vertices = [];
-        // vertices.push(controls.getObject().position);
-        // vertices.push(rayEnd);
-        // var raymaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-        // const raygeometry = new THREE.BufferGeometry().setFromPoints(vertices);
-        // var rayline = new THREE.Line(raygeometry, raymaterial);
-
-        // if (rayLineOld !== null) {
-        //     scene.remove(rayLineOld)
-        //     scene.add(rayline)
-        //     rayLineOld = rayline
-        // }
-        // raycaster.ray.set(controls.getObject().position, mouse3D)
-
         raycaster.setFromCamera({ x: 0, y: 0 }, camera)
 
         const intersections = raycaster.intersectObjects(objects, false);
@@ -264,20 +237,14 @@ function animate() {
         const selectionMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
         if (found) {
             const index = found.faceIndex;
-            const geometry = found.object.geometry;
+            const geometry = (found.object as Mesh).geometry;
             const ifc = ifcLoader.ifcManager;
-            const id = ifc.getExpressId(geometry, index);
-            // ifcLoader.ifcManager.createSubset({scene:scene, modelID: model.modelID, ids:[id], material:selectionMaterial})
-
-            // if (Object.keys(oldColorObject).length > 0){
-            //     for (let key of Object.keys(oldColorObject)){
-            //         key.material.color = oldColorObject[key]
-            //     }
-            // }
+            let id = -1
+            if (index) id = ifc.getExpressId(geometry, index)
 
             if (mouseDown) {
                 console.log("clicked")
-                ifcLoader.ifcManager.createSubset({ scene: scene, modelID: model.modelID, ids: [id], material: selectionMaterial })
+                ifcLoader.ifcManager.createSubset({ scene: scene, modelID: model.modelID, ids: [id], material: selectionMaterial, removePrevious: true})
                 const input = document.createElement("input");  
                 input.type = "text";  
                 input.className = "css-class-name";
@@ -348,14 +315,6 @@ function animate() {
 
 }
 
-//Adjust the viewport to the size of the browser
-window.addEventListener('resize', () => {
-    (size.width = window.innerWidth), (size.height = window.innerHeight);
-    camera.aspect = size.width / size.height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(size.width, size.height);
-});
-
 const ifcLoader = new IFCLoader();
 
 async function loadIFC() {
@@ -395,25 +354,24 @@ async function loadIFC() {
 
     // Voxelize
     const resolution = 0.5;
-    const { min, max } = subset.geometry.boundingBox;
+    const { min, max } = subset.geometry.boundingBox || {min:{x:0, y:0, z:0}, max:{x:0, y:0,z:0}};
 
     const voxelCollider = new Box3();
     voxelCollider.min.set(-resolution / 2, -resolution / 2, -resolution / 2);
     voxelCollider.max.set(resolution / 2, resolution / 2, resolution / 2);
 
-    const voxelizationSize = {
+    const voxelizationSize: xyz = {
         x: Math.ceil((max.x - min.x) / resolution),
         y: Math.ceil((max.y - min.y) / resolution),
         z: Math.ceil((max.z - min.z) / resolution)
     }
 
     // 0 is not visited, 1 is empty, 2 is filled
-    const voxels = newVoxels(voxelizationSize);
+    const voxels: Uint8Array[][] = newVoxels(voxelizationSize);
 
 
     const voxelGeometry = new BoxGeometry(resolution, resolution, resolution);
     const green = new MeshLambertMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2 });
-    const red = new MeshLambertMaterial({ color: 0xff0000, transparent: true, opacity: 0.2 });
     const voxelMesh = new Mesh(voxelGeometry, green);
     scene.add(voxelMesh);
 
@@ -421,8 +379,8 @@ async function loadIFC() {
 
     const origin = [min.x + resolution / 2, min.y + resolution / 2, min.z + resolution / 2];
 
-    const filledVoxelsMatrices = [];
-    const emptyVoxelsMatrices = [];
+    const filledVoxelsMatrices: Matrix4[] = [];
+    const emptyVoxelsMatrices: Matrix4[] = [];
 
     // Compute voxels
     for (let i = 0; i < voxelizationSize.x; i++) {
@@ -435,7 +393,7 @@ async function loadIFC() {
 
                 voxelMesh.updateMatrixWorld();
                 transformMatrix.copy(subset.matrixWorld).invert().multiply(voxelMesh.matrixWorld);
-                const hit = subset.geometry.boundsTree.intersectsBox(voxelCollider, transformMatrix);
+                const hit = subset.geometry.boundsTree?.intersectsBox(voxelCollider, transformMatrix);
 
 
                 voxels[i][j][k] = hit ? 2 : 1;
@@ -448,7 +406,6 @@ async function loadIFC() {
 
     // Representation
     const filledVoxels = new InstancedMesh(voxelGeometry, green, filledVoxelsMatrices.length);
-    const emptyVoxels = new InstancedMesh(voxelGeometry, red, emptyVoxelsMatrices.length);
 
     let counter = 0;
     for (let matrix of filledVoxelsMatrices) {
@@ -458,10 +415,10 @@ async function loadIFC() {
     scene.add(filledVoxels);
 
 
-    function newVoxels(voxelizationSize) {
+    function newVoxels(voxelizationSize:xyz) {
         const newVoxels = [];
         for (let i = 0; i < voxelizationSize.x; i++) {
-            const newArray = [];
+            const newArray: Uint8Array[] = [];
             newVoxels.push(newArray);
             for (let j = 0; j < voxelizationSize.y; j++) {
                 newArray.push(new Uint8Array(voxelizationSize.z));

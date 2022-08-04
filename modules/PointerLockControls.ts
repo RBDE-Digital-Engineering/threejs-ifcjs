@@ -1,4 +1,5 @@
 import {
+	Camera,
 	Euler,
 	EventDispatcher,
 	Vector3
@@ -14,8 +15,22 @@ const _unlockEvent = { type: 'unlock' };
 const _PI_2 = Math.PI / 2;
 
 class PointerLockControls extends EventDispatcher {
+	domElement: HTMLElement;
+	isLocked: boolean;
+	minPolarAngle: number;
+	pointerSpeed: number;
+	maxPolarAngle: number;
+	connect: () => void;
+	disconnect: () => void;
+	dispose: () => void;
+	getObject: () => Camera;
+	getDirection: (v: any) => any;
+	moveForward: (distance: any) => void;
+	moveRight: (distance: any) => void;
+	lock: () => void;
+	unlock: () => void;
 
-	constructor( camera, domElement ) {
+	constructor( camera: Camera, domElement:HTMLElement ) {
 
 		super();
 
@@ -38,12 +53,12 @@ class PointerLockControls extends EventDispatcher {
 
 		const scope = this;
 
-		function onMouseMove( event ) {
+		function onMouseMove( event:MouseEvent ) {
 
 			if ( scope.isLocked === false ) return;
 
-			const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-			const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+			const movementX = event.movementX || 0;
+			const movementY = event.movementY || 0;
 
 			_euler.setFromQuaternion( camera.quaternion );
 
