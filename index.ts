@@ -96,14 +96,10 @@ function initModal() {
       modal.style.display = "none";
     }
   });
-
-
-
-
 }
 
-function getModalInputListener(){
-    // create submit 
+function getModalInputListener() {
+  // create submit
 }
 
 function init() {
@@ -301,9 +297,9 @@ function animate() {
       const geometry = (found.object as Mesh).geometry;
       const ifc = ifcLoader.ifcManager;
       let id = -1;
-      if (index) id = ifc.getExpressId(geometry, index);
 
       if (mouseDown) {
+        if (index) id = ifc.getExpressId(geometry, index);
         console.log("clicked");
         ifcLoader.ifcManager.createSubset({
           scene: scene,
@@ -312,6 +308,8 @@ function animate() {
           material: selectionMaterial,
           removePrevious: true,
         });
+        
+
         // const input = document.createElement("input");
         // input.type = "text"
         // input.className = "css-class-name"
@@ -334,15 +332,19 @@ function animate() {
         bcf.initBcf();
         // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
         bcf.createMarkup(
-            "Rubi BCF Test",
-            "Lukas Schmid"
+          "Rubi BCF Test",
+          "Lukas Schmid",
+          "description",
+          "topicType",
+          "topicStatus",
+          "projectGuid",
+          `ifcObjectGuid:${id}`
         );
         bcf.downloadBcf();
+        // oldColorObject[found.object] = found.object.material.color
+        // found.material.color.set('orange')
+        console.log(id);
       }
-
-      // oldColorObject[found.object] = found.object.material.color
-      // found.material.color.set('orange')
-      console.log(id);
     }
 
     const onObject = intersections.length > 0;
