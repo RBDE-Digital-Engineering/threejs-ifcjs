@@ -95,30 +95,58 @@ export default class BCF {
     //         <Description>Muss mindestens 2° Neigung aufweisen. Wie schaffen wir das?</Description>
     //     </Topic>
     // </Markup>
+  }
+
+
+  public createMarkup(topicTitle: string, author: string, description: string = "", topicType: string = "Issue", topicStatus: string = "In Progress", ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""){
+    var serializer = new XMLSerializer();
     let markupUUID = generateUUID();
+    let today = new Date()
+    let datestring = today.toLocaleDateString("de-DE", { // you can use undefined as first argument
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
     let jsmarkup = {
       Markup: {
-        Header: {},
+        Header: {
+          File: {
+            _attributes: {
+              IfcProject: ifcProjectGuid,
+              IfcSpatialStructureElement: ifcObjectGuid,
+              isExternal: true
+            },
+            Filename: {
+              _text: ifcfilename
+            },
+            Date: {
+              _text: fileIsoTimeString
+            },
+            Reference: {
+              _text: ifcpath
+            }
+          }
+        },
         Topic: {
           _attributes: {
             Guid: markupUUID,
-            TopicType: "Issue",
-            TopicStatus: "In Progress",
+            TopicType: topicType || "Issue",
+            TopicStatus: topicStatus || "In Progress"
           },
           Title: {
-            _text: "Rubi BCF Test",
+            _text: topicTitle
           },
           Index: {
-            _text: "0",
+            _text: "0"
           },
           CreationDate: {
-            _text: "04.08.2022",
+            _text: datestring
           },
           CreationAuthor: {
-            _text: "Lukas Schmid",
+            _text: author
           },
           Description: {
-            _text: "Rubi Markup Project",
+            _text: description
           },
         },
       },
@@ -139,10 +167,17 @@ export default class BCF {
     //     // do something with textcontent by filename
     //   });
     // }
+    throw Error("Not implemented")
     return "success";
   }
 
   public async downloadBcf() {
+  /*
+    Iterate filelist (filestructure)
+    Collect BCF by project
+    Group markups in folder
+  */
+
     // this.zip.file("hello.txt", "Hello[p my)6cxsw2q");
     // this.zip.folder("uuid")?.file("hello.txt", "Hello World\n");
 
