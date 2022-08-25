@@ -83,6 +83,14 @@ function initModal() {
     modal.style.display = "block";
   };
 
+  document.addEventListener("keyup", function(e) {
+    if (e.key === "Escape") { // escape key maps to keycode `27`
+      if (!modal) return 
+      modal.style.display = "none"
+      controls.lock()
+   }
+});
+
   // When the user clicks on <span> (x), close the modal
   span.addEventListener("click", function () {
     if (!modal) return;
@@ -96,6 +104,34 @@ function initModal() {
       modal.style.display = "none";
     }
   });
+}
+
+function displayPSetsInModal(psets: any[]) {
+  var modal = document.getElementById("myModal");
+
+  let header = modal?.getElementsByClassName("modal-header")[0]
+  if(header)header.getElementsByTagName("h2")[0].textContent = "Objectinfo"
+
+  let footer = modal?.getElementsByClassName("modal-footer")[0]
+  if(footer)footer.getElementsByTagName("h3")[0].textContent = "Objectinfo"
+
+  let body = document.getElementById("modal-body");
+  if (!body || !modal) return;
+  body.innerHTML = "";
+  for (let pset of psets) {
+    let psetDiv = document.createElement("div")
+    let title = document.createElement("h3");
+    title.textContent = pset?.Name?.value;
+    psetDiv.append(title);
+
+    for (let prop of pset.HasProperties) {
+      let propField = document.createElement("p");
+      propField.textContent = `${prop.Name.value}: ${prop.NominalValue?.value || "[UNDEFINIERT]"}`;
+      psetDiv.append(propField)
+    }
+    body.append(psetDiv)
+  }
+  if (modal) {controls.unlock(); modal.style.display = "block";}
 }
 
 function getModalInputListener() {
@@ -166,7 +202,7 @@ function init() {
         break;
 
       case "Space":
-        if (canJump === true) velocity.y += 100;
+        if (canJump === true) velocity.y += 10;
         canJump = false;
         break;
     }
@@ -211,8 +247,9 @@ function init() {
     new THREE.Vector3(),
     new THREE.Vector3(0, -1, 0),
     0,
-    10
+    200
   );
+  raycaster.firstHitOnly = true;
 
   for (let i = 0; i < 500; i++) {
     const boxMaterial = new THREE.MeshPhongMaterial({
@@ -235,7 +272,9 @@ function init() {
     box.position.z = Math.floor(Math.random() * 20 - 10) * 20;
 
     scene.add(box);
-    objects.push(box);
+
+    // the raycaster shouldn't cosider the reticle
+    // objects.push(box);
   }
 
   reticleGeometry = new THREE.RingBufferGeometry(0.005, 0.01, 3);
@@ -250,9 +289,9 @@ function init() {
   );
   // asserts drawing on top
   reticle.renderOrder = 999;
-  reticle.onBeforeRender = function (renderer) {
-    renderer.clearDepth();
-  };
+  // reticle.onBeforeRender = function (renderer) {
+  //   renderer.clearDepth();
+  // };
 
   reticle.position.z = -1.1;
   reticle.lookAt(camera.position);
@@ -275,7 +314,14 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-const selectionMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const selectionMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  depthTest: false,
+  depthWrite: false,
+});
+const preSelectionMaterial = new THREE.MeshBasicMaterial({ color: 0x880000 });
+
+let preselectModel = { id: -1 };
 
 function animate() {
   requestAnimationFrame(animate);
@@ -286,11 +332,56 @@ function animate() {
   }
 
   if (controls.isLocked === true) {
+    // const onObject = intersections.length > 0;
+
+    const delta = (time - prevTime) / 1000;
+
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+
+    velocity.y -= 9.8 * 10.0 * delta; // 10.0 = mass
+
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize(); // this ensures consistent movements in all directions
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+    // if (onObject === true) {
+    //   // console.log("looking at object")
+    //   // console.log(intersections)
+    //   velocity.y = Math.max(0, velocity.y);
+    //   canJump = true;
+    // }
+
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+
+    controls.getObject().position.y += velocity.y * delta; // new behavior
+
+    if (controls.getObject().position.y < 1) {
+      velocity.y = 0;
+      controls.getObject().position.y = 1;
+
+      canJump = true;
+    }
+  }
+
+  prevTime = time;
+
+  renderer.render(scene, camera);
+}
+
+window.onmousedown = function (event) {
+  if (controls.isLocked) {
     raycaster.setFromCamera({ x: 0, y: 0 }, camera);
 
-    const intersections = raycaster.intersectObjects(objects, false);
+    console.log(objects);
 
-    const found = intersections[1];
+    const intersections = raycaster.intersectObjects(objects, true);
+
+    const found = intersections[0];
 
     if (found) {
       const index = found.faceIndex;
@@ -301,14 +392,30 @@ function animate() {
       if (mouseDown) {
         if (index) id = ifc.getExpressId(geometry, index);
         console.log("clicked");
-        ifcLoader.ifcManager.createSubset({
+        console.log(JSON.parse(JSON.stringify(found)));
+        let idlist = intersections.map((intersectedObj) =>
+          ifc.getExpressId(
+            (intersectedObj.object as Mesh).geometry,
+            intersectedObj.faceIndex || 0
+          )
+        );
+        console.log(idlist);
+        let new_subset = ifcLoader.ifcManager.createSubset({
           scene: scene,
           modelID: model.modelID,
-          ids: [id],
+          applyBVH: true,
+          ids: idlist,
           material: selectionMaterial,
           removePrevious: true,
         });
-        
+        // intersections.map((intersectedObj) => scene.remove(intersectedObj.object))
+
+        for (let id of idlist) {
+          ifc.getPropertySets(model.modelID, id, true).then((psets) => {
+            console.log(JSON.parse(JSON.stringify(psets)));
+            displayPSetsInModal(psets);
+          });
+        }
 
         // const input = document.createElement("input");
         // input.type = "text"
@@ -328,65 +435,26 @@ function animate() {
         // controls.unlock()
         // input.focus()
 
-        let bcf = new BCF();
-        bcf.initBcf();
-        // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
-        bcf.createMarkup(
-          "Rubi BCF Test",
-          "Lukas Schmid",
-          "description",
-          "topicType",
-          "topicStatus",
-          "projectGuid",
-          `ifcObjectGuid:${id}`
-        );
-        bcf.downloadBcf();
-        // oldColorObject[found.object] = found.object.material.color
-        // found.material.color.set('orange')
-        console.log(id);
+        // let bcf = new BCF();
+        // bcf.initBcf();
+        // // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
+        // bcf.createMarkup(
+        //   "Rubi BCF Test",
+        //   "Lukas Schmid",
+        //   "description",
+        //   "topicType",
+        //   "topicStatus",
+        //   "projectGuid",
+        //   `ifcObjectGuid:${id}`
+        // );
+        // // bcf.downloadBcf();
+        // // oldColorObject[found.object] = found.object.material.color
+        // // found.material.color.set('orange')
+        // console.log(id);
       }
     }
-
-    const onObject = intersections.length > 0;
-
-    const delta = (time - prevTime) / 1000;
-
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
-
-    velocity.y -= 9.8 * 70.0 * delta; // 10.0 = mass
-
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.normalize(); // this ensures consistent movements in all directions
-
-    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-
-    if (onObject === true) {
-      // console.log("looking at object")
-      // console.log(intersections)
-      velocity.y = Math.max(0, velocity.y);
-      canJump = true;
-    }
-
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
-
-    controls.getObject().position.y += velocity.y * delta; // new behavior
-
-    if (controls.getObject().position.y < 1) {
-      velocity.y = 0;
-      controls.getObject().position.y = 1;
-
-      canJump = true;
-    }
   }
-
-  prevTime = time;
-
-  renderer.render(scene, camera);
-}
+};
 
 const ifcLoader = new IFCLoader();
 
@@ -434,115 +502,115 @@ async function loadIFC() {
     false
   );
 
-  const subset = await ifcLoader.ifcManager.createSubset({
-    ids: [
-      ...walls,
-      ...wallsStandard,
-      ...slabs,
-      ...doors,
-      ...windows,
-      ...members,
-      ...plates,
-    ],
-    scene,
-    removePrevious: true,
-    modelID: 0,
-    applyBVH: true,
-  });
+  // const subset = await ifcLoader.ifcManager.createSubset({
+  //   ids: [
+  //     ...walls,
+  //     ...wallsStandard,
+  //     ...slabs,
+  //     ...doors,
+  //     ...windows,
+  //     ...members,
+  //     ...plates,
+  //   ],
+  //   scene,
+  //   removePrevious: true,
+  //   modelID: 0,
+  //   applyBVH: true,
+  // });
 
   // Voxelize
-  const resolution = 0.5;
-  const { min, max } = subset.geometry.boundingBox || {
-    min: { x: 0, y: 0, z: 0 },
-    max: { x: 0, y: 0, z: 0 },
-  };
+  // const resolution = 0.5;
+  // const { min, max } = subset.geometry.boundingBox || {
+  //   min: { x: 0, y: 0, z: 0 },
+  //   max: { x: 0, y: 0, z: 0 },
+  // };
 
-  const voxelCollider = new Box3();
-  voxelCollider.min.set(-resolution / 2, -resolution / 2, -resolution / 2);
-  voxelCollider.max.set(resolution / 2, resolution / 2, resolution / 2);
+  // const voxelCollider = new Box3();
+  // voxelCollider.min.set(-resolution / 2, -resolution / 2, -resolution / 2);
+  // voxelCollider.max.set(resolution / 2, resolution / 2, resolution / 2);
 
-  const voxelizationSize: xyz = {
-    x: Math.ceil((max.x - min.x) / resolution),
-    y: Math.ceil((max.y - min.y) / resolution),
-    z: Math.ceil((max.z - min.z) / resolution),
-  };
+  // const voxelizationSize: xyz = {
+  //   x: Math.ceil((max.x - min.x) / resolution),
+  //   y: Math.ceil((max.y - min.y) / resolution),
+  //   z: Math.ceil((max.z - min.z) / resolution),
+  // };
 
-  // 0 is not visited, 1 is empty, 2 is filled
-  const voxels: Uint8Array[][] = newVoxels(voxelizationSize);
+  // // 0 is not visited, 1 is empty, 2 is filled
+  // const voxels: Uint8Array[][] = newVoxels(voxelizationSize);
 
-  const voxelGeometry = new BoxGeometry(resolution, resolution, resolution);
-  const green = new MeshLambertMaterial({
-    color: 0x00ff00,
-    transparent: true,
-    opacity: 0.2,
-  });
-  const voxelMesh = new Mesh(voxelGeometry, green);
-  scene.add(voxelMesh);
+  // const voxelGeometry = new BoxGeometry(resolution, resolution, resolution);
+  // const green = new MeshLambertMaterial({
+  //   color: 0x00ff00,
+  //   transparent: true,
+  //   opacity: 0.2,
+  // });
+  // const voxelMesh = new Mesh(voxelGeometry, green);
+  // scene.add(voxelMesh);
 
-  const transformMatrix = new Matrix4();
+  // const transformMatrix = new Matrix4();
 
-  const origin = [
-    min.x + resolution / 2,
-    min.y + resolution / 2,
-    min.z + resolution / 2,
-  ];
+  // const origin = [
+  //   min.x + resolution / 2,
+  //   min.y + resolution / 2,
+  //   min.z + resolution / 2,
+  // ];
 
-  const filledVoxelsMatrices: Matrix4[] = [];
-  const emptyVoxelsMatrices: Matrix4[] = [];
+  // const filledVoxelsMatrices: Matrix4[] = [];
+  // const emptyVoxelsMatrices: Matrix4[] = [];
 
-  // Compute voxels
-  for (let i = 0; i < voxelizationSize.x; i++) {
-    for (let j = 0; j < voxelizationSize.y; j++) {
-      for (let k = 0; k < voxelizationSize.z; k++) {
-        voxelMesh.position.set(
-          origin[0] + i * resolution,
-          origin[1] + j * resolution,
-          origin[2] + k * resolution
-        );
+  // // Compute voxels
+  // for (let i = 0; i < voxelizationSize.x; i++) {
+  //   for (let j = 0; j < voxelizationSize.y; j++) {
+  //     for (let k = 0; k < voxelizationSize.z; k++) {
+  //       voxelMesh.position.set(
+  //         origin[0] + i * resolution,
+  //         origin[1] + j * resolution,
+  //         origin[2] + k * resolution
+  //       );
 
-        voxelMesh.updateMatrixWorld();
-        transformMatrix
-          .copy(subset.matrixWorld)
-          .invert()
-          .multiply(voxelMesh.matrixWorld);
-        const hit = subset.geometry.boundsTree?.intersectsBox(
-          voxelCollider,
-          transformMatrix
-        );
+  //       voxelMesh.updateMatrixWorld();
+  //       transformMatrix
+  //         .copy(subset.matrixWorld)
+  //         .invert()
+  //         .multiply(voxelMesh.matrixWorld);
+  //       const hit = subset.geometry.boundsTree?.intersectsBox(
+  //         voxelCollider,
+  //         transformMatrix
+  //       );
 
-        voxels[i][j][k] = hit ? 2 : 1;
+  //       voxels[i][j][k] = hit ? 2 : 1;
 
-        const array = hit ? filledVoxelsMatrices : emptyVoxelsMatrices;
-        array.push(voxelMesh.matrixWorld.clone());
-      }
-    }
-  }
+  //       const array = hit ? filledVoxelsMatrices : emptyVoxelsMatrices;
+  //       array.push(voxelMesh.matrixWorld.clone());
+  //     }
+  //   }
+  // }
 
-  // Representation
-  const filledVoxels = new InstancedMesh(
-    voxelGeometry,
-    green,
-    filledVoxelsMatrices.length
-  );
+  // // Representation
+  // const filledVoxels = new InstancedMesh(
+  //   voxelGeometry,
+  //   green,
+  //   filledVoxelsMatrices.length
+  // );
 
-  let counter = 0;
-  for (let matrix of filledVoxelsMatrices) {
-    filledVoxels.setMatrixAt(counter++, matrix);
-  }
+  // let counter = 0;
+  // for (let matrix of filledVoxelsMatrices) {
+  //   filledVoxels.setMatrixAt(counter++, matrix);
+  // }
 
-  scene.add(filledVoxels);
+  // scene.add(filledVoxels);
 
-  function newVoxels(voxelizationSize: xyz) {
-    const newVoxels = [];
-    for (let i = 0; i < voxelizationSize.x; i++) {
-      const newArray: Uint8Array[] = [];
-      newVoxels.push(newArray);
-      for (let j = 0; j < voxelizationSize.y; j++) {
-        newArray.push(new Uint8Array(voxelizationSize.z));
-      }
-    }
-    return newVoxels;
-  }
+  // function newVoxels(voxelizationSize: xyz) {
+  //   const newVoxels = [];
+  //   for (let i = 0; i < voxelizationSize.x; i++) {
+  //     const newArray: Uint8Array[] = [];
+  //     newVoxels.push(newArray);
+  //     for (let j = 0; j < voxelizationSize.y; j++) {
+  //       newArray.push(new Uint8Array(voxelizationSize.z));
+  //     }
+  //   }
+  //   return newVoxels;
+  // }
 }
 
 // function getContextTrueNorthRotation(context, rotation = {value: 0}) {
