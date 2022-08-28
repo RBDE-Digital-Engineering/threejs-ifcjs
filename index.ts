@@ -631,7 +631,7 @@ window.onmousedown = function (event) {
 const ifcLoader = new IFCLoader();
 
 async function loadIFC() {
-  await ifcLoader.ifcManager.setWasmPath("./");
+  await ifcLoader.ifcManager.setWasmPath("./threejs-ifcjs/");
   await ifcLoader.ifcManager.applyWebIfcConfig({
     USE_FAST_BOOLS: true,
     COORDINATE_TO_ORIGIN: true,
