@@ -10,6 +10,7 @@ import {
   Raycaster,
   Box3,
   RingBufferGeometry,
+  MaxEquation,
 } from "three";
 import {
   IFCWALLSTANDARDCASE,
@@ -33,11 +34,39 @@ import { PointerLockControls } from "./modules/PointerLockControls.js";
 import { Model } from "web-ifc-viewer/dist/components/display/clipping-planes/clipping-edges.js";
 import BCF from "./modules/BCF.js";
 import FormDialog from "./modules/BCF";
+import { IfcProperties } from "web-ifc-viewer/dist/components/ifc/ifc-properties.js";
+import {
+  IFCRELDEFINESBYPROPERTIES,
+  Vector,
+  IFCPROPERTYSET,
+  IFCPROPERTY,
+  IfcLabel,
+  IfcRelDefinesByProperties,
+  IfcPropertySet,
+  IfcProperty,
+  IfcGloballyUniqueId,
+  IfcObjectDefinition,
+  IfcPropertySetDefinitionSelect,
+  IfcIdentifier,
+  IfcText,
+} from "web-ifc/web-ifc-api";
 
 type xyz = {
   x: number;
   y: number;
   z: number;
+};
+
+type Property = {
+  Name: { value: any };
+  NominalValue: { value: any };
+};
+
+type PropertySet = {
+  Name: {
+    value: any;
+  };
+  HasProperties: Property[];
 };
 
 let camera: PerspectiveCamera,
@@ -83,13 +112,14 @@ function initModal() {
     modal.style.display = "block";
   };
 
-  document.addEventListener("keyup", function(e) {
-    if (e.key === "Escape") { // escape key maps to keycode `27`
-      if (!modal) return 
-      modal.style.display = "none"
-      controls.lock()
-   }
-});
+  document.addEventListener("keyup", function (e) {
+    if (e.key === "Escape") {
+      // escape key maps to keycode `27`
+      if (!modal) return;
+      modal.style.display = "none";
+      controls.lock();
+    }
+  });
 
   // When the user clicks on <span> (x), close the modal
   span.addEventListener("click", function () {
@@ -106,32 +136,168 @@ function initModal() {
   });
 }
 
-function displayPSetsInModal(psets: any[]) {
+let downloadBlob = function (
+  data: Uint8Array,
+  fileName: string,
+  mimeType: string
+) {
+  let blob: Blob, url: string;
+  blob = new Blob([data], {
+    type: mimeType,
+  });
+  url = window.URL.createObjectURL(blob);
+  downloadURL(url, fileName);
+  setTimeout(function () {
+    return window.URL.revokeObjectURL(url);
+  }, 1000);
+};
+
+let downloadURL = function (objectURL: string, fileName: string) {
+  let a;
+  a = document.createElement("a");
+  a.href = objectURL;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.setAttribute("style", "display: none");
+  a.click();
+  a.remove();
+};
+
+function getMaxExpressId() {
+  let expressVector = ifcLoader.ifcManager.ifcAPI.GetAllLines(
+    model.modelID
+  ) as Vector<number>;
+  let expressList = [];
+
+  for (let i = 0; i < expressVector.size(); i++) {
+    expressList.push(expressVector.get(i));
+  }
+  return Math.max(...expressList);
+}
+
+async function createPSet(
+  targetExpressId: number,
+  psetName: string
+): Promise<number> {
+  //everything to be created needs a expressID
+  // get list of expressIDs, remember highest (not last)
+
+  let maxExpressID = getMaxExpressId();
+
+  //create propertyset by name, get id
+
+  let relating_propertyset = new IfcPropertySet(
+    ++maxExpressID,
+    IFCPROPERTYSET,
+    new IfcGloballyUniqueId("abcd-efgh-jikl"),
+    null,
+    new IfcLabel(psetName),
+    null, //description
+    []
+  );
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(
+    model.modelID,
+    relating_propertyset
+  );
+
+  let psetID = maxExpressID;
+
+  // create IfcRelDefinesByProperties to link propertyset to objectid
+  let relatedObject = (await ifcLoader.ifcManager.ifcAPI.GetLine(
+    model.modelID,
+    targetExpressId
+  )) as IfcObjectDefinition;
+
+  let ifcrel = new IfcRelDefinesByProperties(
+    ++maxExpressID,
+    IFCRELDEFINESBYPROPERTIES,
+    new IfcGloballyUniqueId("1234-5678-9101"),
+    null, //owner history
+    new IfcLabel("relationfor" + psetName),
+    null, //description
+    [relatedObject],
+    relating_propertyset
+  );
+
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, ifcrel);
+
+  let intarray = ifcLoader.ifcManager.ifcAPI.ExportFileAsIFC(
+    model.modelID
+  ) as Uint8Array;
+  downloadBlob(intarray, "addedpset.ifc", "application/octet-stream");
+
+  return psetID;
+
+  // separate function: pass propertyset expressID
+  // create list of properties in propertyset.hasproperties
+}
+
+async function createPropertyInPSet(
+  targetExpressId: number,
+  propertyName: string,
+  propertyValue: any
+): Promise<number> {
+  let targetPSet = (await ifcLoader.ifcManager.ifcAPI.GetLine(
+    model.modelID,
+    targetExpressId,
+    true
+  )) as IfcPropertySet;
+
+  let mypsets = (await ifcLoader.ifcManager.getAllItemsOfType(model.modelID, IFCPROPERTYSET, true))
+  
+  // console.log(JSON.parse(JSON.stringify(mypsets)))
+  // console.log(JSON.parse(JSON.stringify(mypsets.filter((pset:IfcPropertySet) => pset.expressID === targetExpressId))))
+
+  let new_property_id = getMaxExpressId() + 1
+  targetPSet.HasProperties = [
+    ...targetPSet.HasProperties,
+    new IfcProperty(
+      new_property_id,
+      IFCPROPERTY,
+      new IfcIdentifier(propertyName),
+      new IfcText(propertyValue as string)
+    ),
+  ];
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, targetPSet)
+  return new_property_id
+}
+
+function displayPSetsInModal(psets: PropertySet[]) {
   var modal = document.getElementById("myModal");
 
-  let header = modal?.getElementsByClassName("modal-header")[0]
-  if(header)header.getElementsByTagName("h2")[0].textContent = "Objectinfo"
+  let header = modal?.getElementsByClassName("modal-header")[0];
+  if (header) header.getElementsByTagName("h2")[0].textContent = "Objectinfo";
 
-  let footer = modal?.getElementsByClassName("modal-footer")[0]
-  if(footer)footer.getElementsByTagName("h3")[0].textContent = "Objectinfo"
+  let footer = modal?.getElementsByClassName("modal-footer")[0];
+  if (footer) footer.getElementsByTagName("h3")[0].textContent = "Objectinfo";
 
   let body = document.getElementById("modal-body");
   if (!body || !modal) return;
   body.innerHTML = "";
   for (let pset of psets) {
-    let psetDiv = document.createElement("div")
+    let psetDiv = document.createElement("div");
     let title = document.createElement("h3");
     title.textContent = pset?.Name?.value;
     psetDiv.append(title);
 
     for (let prop of pset.HasProperties) {
       let propField = document.createElement("p");
-      propField.textContent = `${prop.Name.value}: ${prop.NominalValue?.value || "[UNDEFINIERT]"}`;
-      psetDiv.append(propField)
+      propField.textContent = `${prop.Name.value}: ${
+        prop.NominalValue?.value || "[UNDEFINIERT]"
+      }`;
+      psetDiv.append(propField);
     }
-    body.append(psetDiv)
+    body.append(psetDiv);
   }
-  if (modal) {controls.unlock(); modal.style.display = "block";}
+
+  //  create BCF option
+  //  public createMarkup(topicTitle: string, author: string, description: string = "", topicType: string = "Issue", topicStatus: string = "In Progress", ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = "")
+
+  //  create pset option
+  //
+
+  controls.unlock();
+  modal.style.display = "block";
 }
 
 function getModalInputListener() {
@@ -377,7 +543,7 @@ window.onmousedown = function (event) {
   if (controls.isLocked) {
     raycaster.setFromCamera({ x: 0, y: 0 }, camera);
 
-    console.log(objects);
+    // console.log(objects);
 
     const intersections = raycaster.intersectObjects(objects, true);
 
@@ -391,7 +557,13 @@ window.onmousedown = function (event) {
 
       if (mouseDown) {
         if (index) id = ifc.getExpressId(geometry, index);
-        console.log("clicked");
+        createPSet(id, "LukasTest").then((new_id) => 
+          {
+            // console.log("Creating property....")
+           createPropertyInPSet(new_id, "TestProperty", "SUCCESS").then(console.log)
+          }
+        );
+        // console.log("clicked");
         console.log(JSON.parse(JSON.stringify(found)));
         let idlist = intersections.map((intersectedObj) =>
           ifc.getExpressId(
@@ -399,7 +571,7 @@ window.onmousedown = function (event) {
             intersectedObj.faceIndex || 0
           )
         );
-        console.log(idlist);
+        // console.log(idlist);
         let new_subset = ifcLoader.ifcManager.createSubset({
           scene: scene,
           modelID: model.modelID,
@@ -412,7 +584,7 @@ window.onmousedown = function (event) {
 
         for (let id of idlist) {
           ifc.getPropertySets(model.modelID, id, true).then((psets) => {
-            console.log(JSON.parse(JSON.stringify(psets)));
+            // console.log(JSON.parse(JSON.stringify(psets)));
             displayPSetsInModal(psets);
           });
         }
@@ -435,19 +607,19 @@ window.onmousedown = function (event) {
         // controls.unlock()
         // input.focus()
 
-        // let bcf = new BCF();
-        // bcf.initBcf();
-        // // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
-        // bcf.createMarkup(
-        //   "Rubi BCF Test",
-        //   "Lukas Schmid",
-        //   "description",
-        //   "topicType",
-        //   "topicStatus",
-        //   "projectGuid",
-        //   `ifcObjectGuid:${id}`
-        // );
-        // // bcf.downloadBcf();
+        let bcf = new BCF();
+        bcf.initBcf();
+        // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
+        bcf.createMarkup(
+          "Rubi BCF Test",
+          "Lukas Schmid",
+          "description",
+          "topicType",
+          "topicStatus",
+          "projectGuid",
+          `ifcObjectGuid:${id}`
+        );
+        bcf.downloadBcf();
         // // oldColorObject[found.object] = found.object.material.color
         // // found.material.color.set('orange')
         // console.log(id);
@@ -476,7 +648,7 @@ async function loadIFC() {
   scene.add(model);
   objects.push(model);
 
-  console.log(model);
+  // console.log(model);
 
   const walls = await ifcLoader.ifcManager.getAllItemsOfType(0, IFCWALL, false);
   const wallsStandard = await ifcLoader.ifcManager.getAllItemsOfType(
