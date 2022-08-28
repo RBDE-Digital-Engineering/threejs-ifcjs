@@ -631,7 +631,7 @@ window.onmousedown = function (event) {
 const ifcLoader = new IFCLoader();
 
 async function loadIFC() {
-  await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
+  // await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
   await ifcLoader.ifcManager.applyWebIfcConfig({
     USE_FAST_BOOLS: true,
     COORDINATE_TO_ORIGIN: true,
@@ -644,7 +644,7 @@ async function loadIFC() {
     acceleratedRaycast
   );
   await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
-
+  await ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/")
   model = await ifcLoader.loadAsync("IFC/01.ifc");
   scene.add(model);
   objects.push(model);
