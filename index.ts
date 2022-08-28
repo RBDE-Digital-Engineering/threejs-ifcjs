@@ -50,6 +50,7 @@ import {
   IfcIdentifier,
   IfcText,
 } from "web-ifc/web-ifc-api";
+import { IfcManager } from "web-ifc-viewer/dist/components/index.js";
 
 type xyz = {
   x: number;
@@ -627,11 +628,10 @@ window.onmousedown = function (event) {
     }
   }
 };
-
 const ifcLoader = new IFCLoader();
 
 async function loadIFC() {
-  await ifcLoader.ifcManager.setWasmPath("https://rbde-digital-engineering.github.io/threejs-ifcjs/web-ifc.wasm");
+  await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
   await ifcLoader.ifcManager.applyWebIfcConfig({
     USE_FAST_BOOLS: true,
     COORDINATE_TO_ORIGIN: true,
@@ -643,6 +643,7 @@ async function loadIFC() {
     disposeBoundsTree,
     acceleratedRaycast
   );
+  await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
 
   model = await ifcLoader.loadAsync("IFC/01.ifc");
   scene.add(model);
