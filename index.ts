@@ -643,8 +643,8 @@ async function loadIFC() {
     disposeBoundsTree,
     acceleratedRaycast
   );
-  await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/")
-  await ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/")
+  await ifcLoader.ifcManager.setWasmPath("./")
+  // await ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/")
 
   model = await ifcLoader.loadAsync("IFC/01.ifc");
   scene.add(model);

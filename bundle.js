@@ -94992,8 +94992,8 @@ function loadIFC() {
         });
         // Sets up optimized picking
         ifcLoader.ifcManager.setupThreeMeshBVH(computeBoundsTree, disposeBoundsTree, acceleratedRaycast);
-        yield ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
-        yield ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/");
+        yield ifcLoader.ifcManager.setWasmPath("./");
+        // await ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/")
         model = yield ifcLoader.loadAsync("IFC/01.ifc");
         scene.add(model);
         objects.push(model);
