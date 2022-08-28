@@ -94985,13 +94985,15 @@ window.onmousedown = function (event) {
 const ifcLoader = new IFCLoader();
 function loadIFC() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield ifcLoader.ifcManager.setWasmPath("../../../");
+        // await ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
         yield ifcLoader.ifcManager.applyWebIfcConfig({
             USE_FAST_BOOLS: true,
             COORDINATE_TO_ORIGIN: true,
         });
         // Sets up optimized picking
         ifcLoader.ifcManager.setupThreeMeshBVH(computeBoundsTree, disposeBoundsTree, acceleratedRaycast);
+        yield ifcLoader.ifcManager.setWasmPath("threejs-ifcjs/");
+        yield ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/");
         model = yield ifcLoader.loadAsync("IFC/01.ifc");
         scene.add(model);
         objects.push(model);
