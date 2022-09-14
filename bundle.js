@@ -14462,26 +14462,6 @@ FromRawLineData[IFCZSHAPEPROFILEDEF] = (d) => {
 FromRawLineData[IFCZONE] = (d) => {
   return IfcZone.FromTape(d.ID, d.type, d.arguments);
 };
-var IfcGloballyUniqueId = class {
-  constructor(v) {
-    this.value = v;
-  }
-};
-var IfcIdentifier = class {
-  constructor(v) {
-    this.value = v;
-  }
-};
-var IfcLabel = class {
-  constructor(v) {
-    this.value = v;
-  }
-};
-var IfcText = class {
-  constructor(v) {
-    this.value = v;
-  }
-};
 var IfcActionRequest = class {
   constructor(expressID, type, GlobalId, OwnerHistory, Name, Description, ObjectType, Identification, PredefinedType, Status, LongDescription) {
     this.expressID = expressID;
@@ -44109,11 +44089,11 @@ class EventDispatcher {
 
 }
 
-const _lut$1 = [];
+const _lut = [];
 
 for ( let i = 0; i < 256; i ++ ) {
 
-	_lut$1[ i ] = ( i < 16 ? '0' : '' ) + ( i ).toString( 16 );
+	_lut[ i ] = ( i < 16 ? '0' : '' ) + ( i ).toString( 16 );
 
 }
 
@@ -44122,16 +44102,16 @@ const DEG2RAD = Math.PI / 180;
 const RAD2DEG = 180 / Math.PI;
 
 // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/21963136#21963136
-function generateUUID$1() {
+function generateUUID() {
 
 	const d0 = Math.random() * 0xffffffff | 0;
 	const d1 = Math.random() * 0xffffffff | 0;
 	const d2 = Math.random() * 0xffffffff | 0;
 	const d3 = Math.random() * 0xffffffff | 0;
-	const uuid = _lut$1[ d0 & 0xff ] + _lut$1[ d0 >> 8 & 0xff ] + _lut$1[ d0 >> 16 & 0xff ] + _lut$1[ d0 >> 24 & 0xff ] + '-' +
-			_lut$1[ d1 & 0xff ] + _lut$1[ d1 >> 8 & 0xff ] + '-' + _lut$1[ d1 >> 16 & 0x0f | 0x40 ] + _lut$1[ d1 >> 24 & 0xff ] + '-' +
-			_lut$1[ d2 & 0x3f | 0x80 ] + _lut$1[ d2 >> 8 & 0xff ] + '-' + _lut$1[ d2 >> 16 & 0xff ] + _lut$1[ d2 >> 24 & 0xff ] +
-			_lut$1[ d3 & 0xff ] + _lut$1[ d3 >> 8 & 0xff ] + _lut$1[ d3 >> 16 & 0xff ] + _lut$1[ d3 >> 24 & 0xff ];
+	const uuid = _lut[ d0 & 0xff ] + _lut[ d0 >> 8 & 0xff ] + _lut[ d0 >> 16 & 0xff ] + _lut[ d0 >> 24 & 0xff ] + '-' +
+			_lut[ d1 & 0xff ] + _lut[ d1 >> 8 & 0xff ] + '-' + _lut[ d1 >> 16 & 0x0f | 0x40 ] + _lut[ d1 >> 24 & 0xff ] + '-' +
+			_lut[ d2 & 0x3f | 0x80 ] + _lut[ d2 >> 8 & 0xff ] + '-' + _lut[ d2 >> 16 & 0xff ] + _lut[ d2 >> 24 & 0xff ] +
+			_lut[ d3 & 0xff ] + _lut[ d3 >> 8 & 0xff ] + _lut[ d3 >> 16 & 0xff ] + _lut[ d3 >> 24 & 0xff ];
 
 	// .toUpperCase() here flattens concatenated strings to save heap memory space.
 	return uuid.toUpperCase();
@@ -45123,7 +45103,7 @@ class Texture extends EventDispatcher {
 
 		Object.defineProperty( this, 'id', { value: textureId ++ } );
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		this.name = '';
 
@@ -45278,7 +45258,7 @@ class Texture extends EventDispatcher {
 
 			if ( image.uuid === undefined ) {
 
-				image.uuid = generateUUID$1(); // UGH
+				image.uuid = generateUUID(); // UGH
 
 			}
 
@@ -50276,7 +50256,7 @@ class Object3D extends EventDispatcher {
 
 		Object.defineProperty( this, 'id', { value: _object3DId ++ } );
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		this.name = '';
 		this.type = 'Object3D';
@@ -51470,7 +51450,7 @@ class Material extends EventDispatcher {
 
 		Object.defineProperty( this, 'id', { value: materialId ++ } );
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		this.name = '';
 		this.type = 'Material';
@@ -53110,7 +53090,7 @@ class BufferGeometry extends EventDispatcher {
 
 		Object.defineProperty( this, 'id', { value: _id ++ } );
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		this.name = '';
 		this.type = 'BufferGeometry';
@@ -71202,7 +71182,7 @@ class InterleavedBuffer {
 
 		this.version = 0;
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 	}
 
@@ -71266,7 +71246,7 @@ class InterleavedBuffer {
 
 		if ( this.array.buffer._uuid === undefined ) {
 
-			this.array.buffer._uuid = generateUUID$1();
+			this.array.buffer._uuid = generateUUID();
 
 		}
 
@@ -71305,7 +71285,7 @@ class InterleavedBuffer {
 
 		if ( this.array.buffer._uuid === undefined ) {
 
-			this.array.buffer._uuid = generateUUID$1();
+			this.array.buffer._uuid = generateUUID();
 
 		}
 
@@ -74772,7 +74752,7 @@ class Shape extends Path {
 
 		super( points );
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		this.type = 'Shape';
 
@@ -79197,7 +79177,7 @@ class AnimationClip {
 		this.duration = duration;
 		this.blendMode = blendMode;
 
-		this.uuid = generateUUID$1();
+		this.uuid = generateUUID();
 
 		// this means it should figure out its duration by scanning the tracks
 		if ( this.duration < 0 ) {
@@ -94373,228 +94353,13 @@ class PointerLockControls extends EventDispatcher {
     }
 }
 
-const _lut = [];
-
 for ( let i = 0; i < 256; i ++ ) {
 
-	_lut[ i ] = ( i < 16 ? '0' : '' ) + ( i ).toString( 16 );
+	( i < 16 ? '0' : '' ) + ( i ).toString( 16 );
 
 }
 
-// http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/21963136#21963136
-function generateUUID() {
-
-	const d0 = Math.random() * 0xffffffff | 0;
-	const d1 = Math.random() * 0xffffffff | 0;
-	const d2 = Math.random() * 0xffffffff | 0;
-	const d3 = Math.random() * 0xffffffff | 0;
-	const uuid = _lut[ d0 & 0xff ] + _lut[ d0 >> 8 & 0xff ] + _lut[ d0 >> 16 & 0xff ] + _lut[ d0 >> 24 & 0xff ] + '-' +
-			_lut[ d1 & 0xff ] + _lut[ d1 >> 8 & 0xff ] + '-' + _lut[ d1 >> 16 & 0x0f | 0x40 ] + _lut[ d1 >> 24 & 0xff ] + '-' +
-			_lut[ d2 & 0x3f | 0x80 ] + _lut[ d2 >> 8 & 0xff ] + '-' + _lut[ d2 >> 16 & 0xff ] + _lut[ d2 >> 24 & 0xff ] +
-			_lut[ d3 & 0xff ] + _lut[ d3 >> 8 & 0xff ] + _lut[ d3 >> 16 & 0xff ] + _lut[ d3 >> 24 & 0xff ];
-
-	// .toUpperCase() here flattens concatenated strings to save heap memory space.
-	return uuid.toUpperCase();
-
-}
-
-"stream"in Blob.prototype||Object.defineProperty(Blob.prototype,"stream",{value(){return new Response(this).body}}),"setBigUint64"in DataView.prototype||Object.defineProperty(DataView.prototype,"setBigUint64",{value(n,e,t){const i=Number(0xffffffffn&e),o=Number(e>>32n);this.setUint32(n+(t?0:4),i,t),this.setUint32(n+(t?4:0),o,t);}});var n=n=>new DataView(new ArrayBuffer(n)),e=n=>new Uint8Array(n.buffer||n),t=n=>(new TextEncoder).encode(String(n)),i=n=>Math.min(4294967295,Number(n)),o=n=>Math.min(65535,Number(n));function f(n,i){if(void 0===i||i instanceof Date||(i=new Date(i)),n instanceof File)return {t:i||new Date(n.lastModified),i:n.stream()};if(n instanceof Response)return {t:i||new Date(n.headers.get("Last-Modified")||Date.now()),i:n.body};if(void 0===i)i=new Date;else if(isNaN(i))throw new Error("Invalid modification date.");if("string"==typeof n)return {t:i,i:t(n)};if(n instanceof Blob)return {t:i,i:n.stream()};if(n instanceof Uint8Array||n instanceof ReadableStream)return {t:i,i:n};if(n instanceof ArrayBuffer||ArrayBuffer.isView(n))return {t:i,i:e(n)};if(Symbol.asyncIterator in n)return {t:i,i:r(n)};throw new TypeError("Unsupported input format.")}function r(n){const e="next"in n?n:n[Symbol.asyncIterator]();return new ReadableStream({async pull(n){let t=0;for(;n.desiredSize>t;){const i=await e.next();if(!i.value){n.close();break}{const e=s(i.value);n.enqueue(e),t+=e.byteLength;}}}})}function s(n){return "string"==typeof n?t(n):n instanceof Uint8Array?n:e(n)}function a(n,e,i){if(void 0===e||e instanceof Uint8Array||(e=t(e)),n instanceof File)return {o:e||t(n.name),A:BigInt(n.size)};if(n instanceof Response){const o=n.headers.get("content-disposition"),f=o&&o.match(/;\s*filename\*?=["']?(.*?)["']?$/i),r=f&&f[1]||new URL(n.url).pathname.split("/").pop(),s=r&&decodeURIComponent(r),a=i||+n.headers.get("content-length");return {o:e||t(s),A:BigInt(a)}}if(!e||0===e.length)throw new Error("The file must have a name.");return "string"==typeof n?{o:e,A:BigInt(t(n).length)}:n instanceof Blob?{o:e,A:BigInt(n.size)}:n instanceof ArrayBuffer||ArrayBuffer.isView(n)?{o:e,A:BigInt(n.byteLength)}:{o:e,A:i>-1?BigInt(i):void 0}}var A=new WebAssembly.Instance(new WebAssembly.Module(Uint8Array.from(atob("AGFzbQEAAAABCgJgAABgAn9/AXwDAwIAAQUDAQACBwkCAW0CAAFjAAEIAQAKlQECSQEDfwNAIAEhAEEAIQIDQCAAQQF2IABBAXFBoIbi7X5scyEAIAJBAWoiAkEIRw0ACyABQQJ0IAA2AgAgAUEBaiIBQYACRw0ACwtJAQF/IAFBf3MhAUGAgAQhAkGAgAQgAGohAANAIAFB/wFxIAItAABzQQJ0KAIAIAFBCHZzIQEgAkEBaiICIABJDQALIAFBf3O4Cw"),(n=>n.charCodeAt(0))))),{c,m}=A.exports,u=e(m).subarray(65536);function d(n,e=0){for(const t of function*(n){for(;n.length>65536;)yield n.subarray(0,65536),n=n.subarray(65536);n.length&&(yield n);}(n))u.set(t),e=c(t.length,e);return e}function y(n,e,t=0){const i=n.getSeconds()>>1|n.getMinutes()<<5|n.getHours()<<11,o=n.getDate()|n.getMonth()+1<<5|n.getFullYear()-1980<<9;e.setUint16(t,i,1),e.setUint16(t+2,o,1);}function l(t){const i=n(30);return i.setUint32(0,1347093252),i.setUint32(4,754976768),y(t.t,i,10),i.setUint16(26,t.o.length,1),e(i)}async function*B(n){let{i:e}=n;if("then"in e&&(e=await e),e instanceof Uint8Array)yield e,n.u=d(e,0),n.A=BigInt(e.length);else {n.A=0n;const t=e.getReader();for(;;){const{value:e,done:i}=await t.read();if(i)break;n.u=d(e,n.u),n.A+=BigInt(e.length),yield e;}}}function w(t,o){const f=n(16+(o?8:0));return f.setUint32(0,1347094280),f.setUint32(4,t.u,1),o?(f.setBigUint64(8,t.A,1),f.setBigUint64(16,t.A,1)):(f.setUint32(8,i(t.A),1),f.setUint32(12,i(t.A),1)),e(f)}function I(t,o,f=0){const r=n(46);return r.setUint32(0,1347092738),r.setUint32(4,755182848),r.setUint16(8,2048),y(t.t,r,12),r.setUint32(16,t.u,1),r.setUint32(20,i(t.A),1),r.setUint32(24,i(t.A),1),r.setUint16(28,t.o.length,1),r.setUint16(30,f,1),r.setUint16(40,33204,1),r.setUint32(42,i(o),1),e(r)}function g(t,i,o){const f=n(o);return f.setUint16(0,1,1),f.setUint16(2,o-4,1),16&o&&(f.setBigUint64(4,t.A,1),f.setBigUint64(12,t.A,1)),f.setBigUint64(o-8,i,1),e(f)}function b(n){return n instanceof File||n instanceof Response?[[n],[n]]:[[n.input,n.name,n.size],[n.input,n.lastModified]]}var p=n=>function(n){let e=BigInt(22),t=0n,i=0;for(const o of n){if(!o.o)throw new Error("Every file must have a non-empty name.");if(void 0===o.A)throw new Error(`Missing size for file "${(new TextDecoder).decode(o.o)}".`);const n=o.A>=0xffffffffn,f=t>=0xffffffffn;t+=BigInt(46+o.o.length+(n&&8))+o.A,e+=BigInt(o.o.length+46+(12*f|28*n)),i||(i=n);}return (i||t>=0xffffffffn)&&(e+=BigInt(76)),e+t}(function*(n){for(const e of n)yield a(...b(e)[0]);}(n));function D(t,s={}){const A={"Content-Type":"application/zip","Content-Disposition":"attachment"};return ("bigint"==typeof s.length||Number.isInteger(s.length))&&s.length>0&&(A["Content-Length"]=String(s.length)),s.metadata&&(A["Content-Length"]=String(p(s.metadata))),new Response(r(async function*(t){const f=[];let r=0n,s=0n,a=0;for await(const n of t){yield l(n),yield n.o,yield*B(n);const e=n.A>=0xffffffffn,t=12*(r>=0xffffffffn)|28*e;yield w(n,e),f.push(I(n,r,t)),f.push(n.o),t&&f.push(g(n,r,t)),e&&(r+=8n),s++,r+=BigInt(46+n.o.length)+n.A,a||(a=e);}let A=0n;for(const n of f)yield n,A+=BigInt(n.length);if(a||r>=0xffffffffn){const t=n(76);t.setUint32(0,1347094022),t.setBigUint64(4,BigInt(44),1),t.setUint32(12,755182848),t.setBigUint64(24,s,1),t.setBigUint64(32,s,1),t.setBigUint64(40,A,1),t.setBigUint64(48,r,1),t.setUint32(56,1347094023),t.setBigUint64(64,r+A,1),t.setUint32(72,1,1),yield e(t);}const u=n(22);u.setUint32(0,1347093766),u.setUint16(8,o(s),1),u.setUint16(10,o(s),1),u.setUint32(12,i(A),1),u.setUint32(16,i(r),1),yield e(u);}(async function*(n){for await(const e of n){const[n,t]=b(e);yield Object.assign(f(...t),a(...n));}}(t))),{headers:A})}
-
-class BCF {
-    constructor() {
-        this.filelist = [];
-    }
-    /*
-          File structure
-          - extensions.xml
-          - bcf.version
-          - {topic-guid}
-          - markup.bcf
-          - {viewpointelement}.bcfv
-          - {snapshotelement}.png (<1500px sides)
-          
-          
-          markup also describes viewpoints & snapshots
-      */
-    /*
-          Create instances of BCF Files
-          projectId
-  
-          Markups: IFCGuid
-  
-  
-          Make Typescript declaration for elements -> translate to xml at entry/exit
-  
-          allow fileupload
-      */
-    makeChildren(xml_root, parent_xml, jsobject) {
-        let newEles = [];
-        for (const [key, value] of Object.entries(jsobject)) {
-            if (key == "_text" && parent_xml) {
-                parent_xml.innerHTML = value;
-            }
-            else if (key == "_attributes" && parent_xml) {
-                for (const [vkey, vvalue] of Object.entries(value)) {
-                    parent_xml.setAttribute(vkey, vvalue);
-                }
-            }
-            else {
-                let newEle = xml_root.createElement(key);
-                for (let child of this.makeChildren(xml_root, newEle, value))
-                    newEle.appendChild(child);
-                newEles.push(newEle);
-            }
-        }
-        return newEles;
-    }
-    js2xml(jsobject) {
-        var doc = document.implementation.createDocument("", "", null);
-        for (let child of this.makeChildren(doc, null, jsobject))
-            doc.appendChild(child);
-        return doc;
-    }
-    initBcf() {
-        /*
-            <!-- STATIC -->
-            <Version VersionId="2.1" xsi:noNamespaceSchemaLocation="version.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-                <DetailedVersion>2.1</DetailedVersion>
-            </Version>
-        */
-        let jsversion = {
-            Version: {
-                _attributes: {
-                    VersionId: "2.1",
-                    "xsi:noNamespaceSchemaLocation": "version.xsd",
-                    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-                },
-                DetailedVersion: {
-                    _text: "2.1",
-                },
-            },
-        };
-        let versionXML = this.js2xml(jsversion);
-        var serializer = new XMLSerializer();
-        let versionXMLText = serializer.serializeToString(versionXML);
-        this.filelist.push({ name: "bcf.version", input: versionXMLText });
-        // <!-- DYNAMIC -->
-        // <Markup>
-        //     <Topic Guid="488580A4-D2BB-4CB1-8F35-E4253E255757" TopicType="Issue" TopicStatus="In Progress">
-        //         <Title>Fahrbahnoberfläche</Title>
-        //         <Index>0</Index>
-        //         <CreationDate>2022-07-29T08:34:16</CreationDate>
-        //         <CreationAuthor>Floris Piso</CreationAuthor>
-        //         <Description>Muss mindestens 2° Neigung aufweisen. Wie schaffen wir das?</Description>
-        //     </Topic>
-        // </Markup>
-    }
-    createMarkup(topicTitle, author, description = "", topicType = "Issue", topicStatus = "In Progress", ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = "") {
-        var serializer = new XMLSerializer();
-        let markupUUID = generateUUID();
-        let today = new Date();
-        let datestring = today.toLocaleDateString("de-DE", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-        });
-        let jsmarkup = {
-            Markup: {
-                Header: {
-                    File: {
-                        _attributes: {
-                            IfcProject: ifcProjectGuid,
-                            IfcSpatialStructureElement: ifcObjectGuid,
-                            isExternal: true
-                        },
-                        Filename: {
-                            _text: ifcfilename
-                        },
-                        Date: {
-                            _text: fileIsoTimeString
-                        },
-                        Reference: {
-                            _text: ifcpath
-                        }
-                    }
-                },
-                Topic: {
-                    _attributes: {
-                        Guid: markupUUID,
-                        TopicType: topicType || "Issue",
-                        TopicStatus: topicStatus || "In Progress"
-                    },
-                    Title: {
-                        _text: topicTitle
-                    },
-                    Index: {
-                        _text: "0"
-                    },
-                    CreationDate: {
-                        _text: datestring
-                    },
-                    CreationAuthor: {
-                        _text: author
-                    },
-                    Description: {
-                        _text: description
-                    },
-                },
-            },
-        };
-        let markupXML = this.js2xml(jsmarkup);
-        let markupXMLText = serializer.serializeToString(markupXML);
-        this.filelist.push({ name: `${markupUUID}/markup.bcf`, input: markupXMLText });
-    }
-    loadBcf() {
-        return __awaiter(this, void 0, void 0, function* () {
-            // return project id
-            // this.zip = await JSZip.loadAsync("zipdata");
-            // for (let filename of Object.keys(this.zip.files)) {
-            //   let filecontent = this.zip.files[filename];
-            //   filecontent.async("string").then((textcontent) => {
-            //     console.log(xmljs.xml2js(textcontent));
-            //     // do something with textcontent by filename
-            //   });
-            // }
-            throw Error("Not implemented");
-        });
-    }
-    downloadBcf() {
-        return __awaiter(this, void 0, void 0, function* () {
-            /*
-              Iterate filelist (filestructure)
-              Collect BCF by project
-              Group markups in folder
-            */
-            // this.zip.file("hello.txt", "Hello[p my)6cxsw2q");
-            // this.zip.folder("uuid")?.file("hello.txt", "Hello World\n");
-            const blob = yield D(this.filelist).blob();
-            // make and click a temporary link to download the Blob
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "test.bcf";
-            link.click();
-            link.remove();
-            // write to file & download
-            //   var a = document.createElement("a");
-            //   document.body.appendChild(a);
-            //   let blob = content;
-            //   let url = window.URL.createObjectURL(blob);
-            //   a.href = url;
-            //   a.download = "example.bcf";
-            //   a.click();
-            //   window.URL.revokeObjectURL(url);
-            //   document.body.removeChild(a);
-            // });
-            //create files
-            //zip
-        });
-    }
-    writeSnapshot() { }
-    writeTopic() { }
-    getTopics() {
-        // return map from ifc-guid to text
-    }
-}
+"stream"in Blob.prototype||Object.defineProperty(Blob.prototype,"stream",{value(){return new Response(this).body}}),"setBigUint64"in DataView.prototype||Object.defineProperty(DataView.prototype,"setBigUint64",{value(n,e,t){const i=Number(0xffffffffn&e),o=Number(e>>32n);this.setUint32(n+(t?0:4),i,t),this.setUint32(n+(t?4:0),o,t);}});var e=n=>new Uint8Array(n.buffer||n);var A=new WebAssembly.Instance(new WebAssembly.Module(Uint8Array.from(atob("AGFzbQEAAAABCgJgAABgAn9/AXwDAwIAAQUDAQACBwkCAW0CAAFjAAEIAQAKlQECSQEDfwNAIAEhAEEAIQIDQCAAQQF2IABBAXFBoIbi7X5scyEAIAJBAWoiAkEIRw0ACyABQQJ0IAA2AgAgAUEBaiIBQYACRw0ACwtJAQF/IAFBf3MhAUGAgAQhAkGAgAQgAGohAANAIAFB/wFxIAItAABzQQJ0KAIAIAFBCHZzIQEgAkEBaiICIABJDQALIAFBf3O4Cw"),(n=>n.charCodeAt(0))))),{c,m}=A.exports;e(m).subarray(65536);
 
 let camera, scene, renderer, controls, model, reticleGeometry;
 const objects = [];
@@ -94649,74 +94414,7 @@ function initModal() {
         }
     });
 }
-let downloadBlob = function (data, fileName, mimeType) {
-    let blob, url;
-    blob = new Blob([data], {
-        type: mimeType,
-    });
-    url = window.URL.createObjectURL(blob);
-    downloadURL(url, fileName);
-    setTimeout(function () {
-        return window.URL.revokeObjectURL(url);
-    }, 1000);
-};
-let downloadURL = function (objectURL, fileName) {
-    let a;
-    a = document.createElement("a");
-    a.href = objectURL;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.setAttribute("style", "display: none");
-    a.click();
-    a.remove();
-};
-function getMaxExpressId() {
-    let expressVector = ifcLoader.ifcManager.ifcAPI.GetAllLines(model.modelID);
-    let expressList = [];
-    for (let i = 0; i < expressVector.size(); i++) {
-        expressList.push(expressVector.get(i));
-    }
-    return Math.max(...expressList);
-}
-function createPSet(targetExpressId, psetName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        //everything to be created needs a expressID
-        // get list of expressIDs, remember highest (not last)
-        let maxExpressID = getMaxExpressId();
-        //create propertyset by name, get id
-        let relating_propertyset = new IfcPropertySet(++maxExpressID, IFCPROPERTYSET, new IfcGloballyUniqueId("abcd-efgh-jikl"), null, new IfcLabel(psetName), null, //description
-        []);
-        yield ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, relating_propertyset);
-        let psetID = maxExpressID;
-        // create IfcRelDefinesByProperties to link propertyset to objectid
-        let relatedObject = (yield ifcLoader.ifcManager.ifcAPI.GetLine(model.modelID, targetExpressId));
-        let ifcrel = new IfcRelDefinesByProperties(++maxExpressID, IFCRELDEFINESBYPROPERTIES, new IfcGloballyUniqueId("1234-5678-9101"), null, //owner history
-        new IfcLabel("relationfor" + psetName), null, //description
-        [relatedObject], relating_propertyset);
-        yield ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, ifcrel);
-        let intarray = ifcLoader.ifcManager.ifcAPI.ExportFileAsIFC(model.modelID);
-        downloadBlob(intarray, "addedpset.ifc", "application/octet-stream");
-        return psetID;
-        // separate function: pass propertyset expressID
-        // create list of properties in propertyset.hasproperties
-    });
-}
-function createPropertyInPSet(targetExpressId, propertyName, propertyValue) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let targetPSet = (yield ifcLoader.ifcManager.ifcAPI.GetLine(model.modelID, targetExpressId, true));
-        (yield ifcLoader.ifcManager.getAllItemsOfType(model.modelID, IFCPROPERTYSET, true));
-        // console.log(JSON.parse(JSON.stringify(mypsets)))
-        // console.log(JSON.parse(JSON.stringify(mypsets.filter((pset:IfcPropertySet) => pset.expressID === targetExpressId))))
-        let new_property_id = getMaxExpressId() + 1;
-        targetPSet.HasProperties = [
-            ...targetPSet.HasProperties,
-            new IfcProperty(new_property_id, IFCPROPERTY, new IfcIdentifier(propertyName), new IfcText(propertyValue)),
-        ];
-        yield ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, targetPSet);
-        return new_property_id;
-    });
-}
-function displayPSetsInModal(psets) {
+function displayPSetsInModal(psets, objectid) {
     var _a, _b;
     var modal = document.getElementById("myModal");
     let header = modal === null || modal === void 0 ? void 0 : modal.getElementsByClassName("modal-header")[0];
@@ -94724,7 +94422,8 @@ function displayPSetsInModal(psets) {
         header.getElementsByTagName("h2")[0].textContent = "Objectinfo";
     let footer = modal === null || modal === void 0 ? void 0 : modal.getElementsByClassName("modal-footer")[0];
     if (footer)
-        footer.getElementsByTagName("h3")[0].textContent = "Objectinfo";
+        footer.getElementsByTagName("h3")[0].innerHTML =
+            "<button onclick='downloadIFC'>Download IFC</button>\n<button onclick='createAndDonwloadBCF'>Download BCF</button>\nObjectinfo";
     let body = document.getElementById("modal-body");
     if (!body || !modal)
         return;
@@ -94750,7 +94449,8 @@ function displayPSetsInModal(psets) {
 }
 function init() {
     camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.y = 0.17;
+    camera.position.y = 0.22;
+    camera = camera.rotateY(Math.PI);
     scene = new Scene();
     scene.background = new Color(0xffffff);
     scene.fog = new Fog(0xffffff, 0, 750);
@@ -94874,9 +94574,11 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 const selectionMaterial = new MeshBasicMaterial({
+    transparent: true,
+    opacity: 0.6,
     color: 0xff0000,
     depthTest: false,
-    depthWrite: false,
+    // depthWrite: false,
 });
 new MeshBasicMaterial({ color: 0x880000 });
 function animate() {
@@ -94888,8 +94590,8 @@ function animate() {
     if (controls.isLocked === true) {
         // const onObject = intersections.length > 0;
         const delta = (time - prevTime) / 1000;
-        velocity.x -= velocity.x * 10.0 * delta;
-        velocity.z -= velocity.z * 10.0 * delta;
+        velocity.x -= velocity.x * 40.0 * delta;
+        velocity.z -= velocity.z * 40.0 * delta;
         velocity.y -= 9.8 * 10.0 * delta; // 10.0 = mass
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
@@ -94922,18 +94624,20 @@ window.onmousedown = function (event) {
         // console.log(objects);
         const intersections = raycaster.intersectObjects(objects, true);
         const found = intersections[0];
+        console.log(intersections);
         if (found) {
             const index = found.faceIndex;
             const geometry = found.object.geometry;
             const ifc = ifcLoader.ifcManager;
-            let id = -1;
             if (mouseDown) {
                 if (index)
-                    id = ifc.getExpressId(geometry, index);
-                createPSet(id, "LukasTest").then((new_id) => {
-                    // console.log("Creating property....")
-                    createPropertyInPSet(new_id, "TestProperty", "SUCCESS").then(console.log);
-                });
+                    ifc.getExpressId(geometry, index);
+                // createPSet(id, "LukasTest").then((new_id) => {
+                //   // console.log("Creating property....")
+                //   createPropertyInPSet(new_id, "TestProperty", "SUCCESS").then(
+                //     console.log
+                //   );
+                // });
                 // console.log("clicked");
                 console.log(JSON.parse(JSON.stringify(found)));
                 let idlist = intersections.map((intersectedObj) => ifc.getExpressId(intersectedObj.object.geometry, intersectedObj.faceIndex || 0));
@@ -94941,7 +94645,7 @@ window.onmousedown = function (event) {
                 ifcLoader.ifcManager.createSubset({
                     scene: scene,
                     modelID: model.modelID,
-                    applyBVH: true,
+                    // applyBVH: true,
                     ids: idlist,
                     material: selectionMaterial,
                     removePrevious: true,
@@ -94953,31 +94657,6 @@ window.onmousedown = function (event) {
                         displayPSetsInModal(psets);
                     });
                 }
-                // const input = document.createElement("input");
-                // input.type = "text"
-                // input.className = "css-class-name"
-                // input.addEventListener('keypress', function (e) {
-                //     if (e.key === 'Enter') {
-                //         var element = document.createElement('a');
-                //         element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(input.value));
-                //         element.setAttribute('download', "comment.txt");
-                //         document.body.appendChild(element);
-                //         element.click();
-                //         document.body.removeChild(element)
-                //         document.body.removeChild(input)
-                //     }
-                // });
-                // document.body.appendChild(input);
-                // controls.unlock()
-                // input.focus()
-                let bcf = new BCF();
-                bcf.initBcf();
-                // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
-                bcf.createMarkup("Rubi BCF Test", "Lukas Schmid", "description", "topicType", "topicStatus", "projectGuid", `ifcObjectGuid:${id}`);
-                bcf.downloadBcf();
-                // // oldColorObject[found.object] = found.object.material.color
-                // // found.material.color.set('orange')
-                // console.log(id);
             }
         }
     }
@@ -94998,119 +94677,6 @@ function loadIFC() {
         scene.add(model);
         objects.push(model);
         // console.log(model);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCWALL, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCWALLSTANDARDCASE, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCSLAB, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCDOOR, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCWINDOW, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCMEMBER, false);
-        yield ifcLoader.ifcManager.getAllItemsOfType(0, IFCPLATE, false);
-        // const subset = await ifcLoader.ifcManager.createSubset({
-        //   ids: [
-        //     ...walls,
-        //     ...wallsStandard,
-        //     ...slabs,
-        //     ...doors,
-        //     ...windows,
-        //     ...members,
-        //     ...plates,
-        //   ],
-        //   scene,
-        //   removePrevious: true,
-        //   modelID: 0,
-        //   applyBVH: true,
-        // });
-        // Voxelize
-        // const resolution = 0.5;
-        // const { min, max } = subset.geometry.boundingBox || {
-        //   min: { x: 0, y: 0, z: 0 },
-        //   max: { x: 0, y: 0, z: 0 },
-        // };
-        // const voxelCollider = new Box3();
-        // voxelCollider.min.set(-resolution / 2, -resolution / 2, -resolution / 2);
-        // voxelCollider.max.set(resolution / 2, resolution / 2, resolution / 2);
-        // const voxelizationSize: xyz = {
-        //   x: Math.ceil((max.x - min.x) / resolution),
-        //   y: Math.ceil((max.y - min.y) / resolution),
-        //   z: Math.ceil((max.z - min.z) / resolution),
-        // };
-        // // 0 is not visited, 1 is empty, 2 is filled
-        // const voxels: Uint8Array[][] = newVoxels(voxelizationSize);
-        // const voxelGeometry = new BoxGeometry(resolution, resolution, resolution);
-        // const green = new MeshLambertMaterial({
-        //   color: 0x00ff00,
-        //   transparent: true,
-        //   opacity: 0.2,
-        // });
-        // const voxelMesh = new Mesh(voxelGeometry, green);
-        // scene.add(voxelMesh);
-        // const transformMatrix = new Matrix4();
-        // const origin = [
-        //   min.x + resolution / 2,
-        //   min.y + resolution / 2,
-        //   min.z + resolution / 2,
-        // ];
-        // const filledVoxelsMatrices: Matrix4[] = [];
-        // const emptyVoxelsMatrices: Matrix4[] = [];
-        // // Compute voxels
-        // for (let i = 0; i < voxelizationSize.x; i++) {
-        //   for (let j = 0; j < voxelizationSize.y; j++) {
-        //     for (let k = 0; k < voxelizationSize.z; k++) {
-        //       voxelMesh.position.set(
-        //         origin[0] + i * resolution,
-        //         origin[1] + j * resolution,
-        //         origin[2] + k * resolution
-        //       );
-        //       voxelMesh.updateMatrixWorld();
-        //       transformMatrix
-        //         .copy(subset.matrixWorld)
-        //         .invert()
-        //         .multiply(voxelMesh.matrixWorld);
-        //       const hit = subset.geometry.boundsTree?.intersectsBox(
-        //         voxelCollider,
-        //         transformMatrix
-        //       );
-        //       voxels[i][j][k] = hit ? 2 : 1;
-        //       const array = hit ? filledVoxelsMatrices : emptyVoxelsMatrices;
-        //       array.push(voxelMesh.matrixWorld.clone());
-        //     }
-        //   }
-        // }
-        // // Representation
-        // const filledVoxels = new InstancedMesh(
-        //   voxelGeometry,
-        //   green,
-        //   filledVoxelsMatrices.length
-        // );
-        // let counter = 0;
-        // for (let matrix of filledVoxelsMatrices) {
-        //   filledVoxels.setMatrixAt(counter++, matrix);
-        // }
-        // scene.add(filledVoxels);
-        // function newVoxels(voxelizationSize: xyz) {
-        //   const newVoxels = [];
-        //   for (let i = 0; i < voxelizationSize.x; i++) {
-        //     const newArray: Uint8Array[] = [];
-        //     newVoxels.push(newArray);
-        //     for (let j = 0; j < voxelizationSize.y; j++) {
-        //       newArray.push(new Uint8Array(voxelizationSize.z));
-        //     }
-        //   }
-        //   return newVoxels;
-        // }
     });
 }
-// function getContextTrueNorthRotation(context, rotation = {value: 0}) {
-//
-//     if (context.TrueNorth.DirectionRatios) {
-//         const ratios = context.TrueNorth.DirectionRatios.map(item => item.value);
-//         rotation.value += (Math.atan2(ratios[1], ratios[0]) - Math.PI / 2);
-//     }
-//
-//     if (context.ParentContext) {
-//         getContextTrueNorthRotation(context.ParentContext, rotation);
-//     }
-//
-//     return rotation.value;
-// }
 loadIFC();
