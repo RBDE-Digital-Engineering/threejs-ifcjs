@@ -20,6 +20,7 @@ import {
   IFCDOOR,
   IFCPLATE,
   IFCMEMBER,
+  IFCOWNERHISTORY
 } from "web-ifc";
 import { IFCLoader } from "web-ifc-three/IFCLoader";
 import {
@@ -42,11 +43,13 @@ import {
   IFCPROPERTY,
   IfcLabel,
   IfcRelDefinesByProperties,
+  IfcOwnerHistory,
   IfcPropertySet,
   IfcProperty,
   IfcGloballyUniqueId,
   IfcObjectDefinition,
   IfcPropertySetDefinitionSelect,
+  IfcPropertySetDefinition,
   IfcIdentifier,
   IfcText,
 } from "web-ifc/web-ifc-api";
@@ -184,24 +187,32 @@ async function createPSet(
   // get list of expressIDs, remember highest (not last)
 
   let maxExpressID = getMaxExpressId();
+  let psetID = ++maxExpressID;
+
+  let owner = (await ifcLoader.ifcManager.getAllItemsOfType(model.modelID, IFCOWNERHISTORY, true))[0] as IfcOwnerHistory
 
   //create propertyset by name, get id
 
+  let new_property = new IfcProperty(++maxExpressID, IFCPROPERTY, new IfcIdentifier("PropertyIdentifier"), new IfcText("PropertyText"))
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, new_property as IfcProperty);
+
   let relating_propertyset = new IfcPropertySet(
-    ++maxExpressID,
+    psetID,
     IFCPROPERTYSET,
-    new IfcGloballyUniqueId("abcd-efgh-jikl"),
-    null,
+    new IfcGloballyUniqueId(crypto.randomUUID()),
+    owner,
     new IfcLabel(psetName),
-    null, //description
-    []
+    new IfcText("descirption text pset"), //description
+    [
+      new_property
+    ]
   );
   await ifcLoader.ifcManager.ifcAPI.WriteLine(
     model.modelID,
-    relating_propertyset
+    relating_propertyset as IfcPropertySet
   );
 
-  let psetID = maxExpressID;
+
 
   // create IfcRelDefinesByProperties to link propertyset to objectid
   let relatedObject = (await ifcLoader.ifcManager.ifcAPI.GetLine(
@@ -209,28 +220,31 @@ async function createPSet(
     targetExpressId
   )) as IfcObjectDefinition;
 
+  console.log(relatedObject)
+
   let ifcrel = new IfcRelDefinesByProperties(
     ++maxExpressID,
     IFCRELDEFINESBYPROPERTIES,
-    new IfcGloballyUniqueId("1234-5678-9101"),
-    null, //owner history
+    new IfcGloballyUniqueId(crypto.randomUUID()),
+    owner, //owner history
     new IfcLabel("relationfor" + psetName),
-    null, //description
+    new IfcText("descirption text reldefinesbyproperties"), //description
     [relatedObject],
-    relating_propertyset
+    relating_propertyset // as IfcPropertySetDefinition] as IfcPropertySetDefinitionSelect
   );
 
-  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, ifcrel);
-
-  let intarray = ifcLoader.ifcManager.ifcAPI.ExportFileAsIFC(
-    model.modelID
-  ) as Uint8Array;
-  downloadBlob(intarray, "addedpset.ifc", "application/octet-stream");
-
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, ifcrel as IfcRelDefinesByProperties);
   return psetID;
 
   // separate function: pass propertyset expressID
   // create list of properties in propertyset.hasproperties
+}
+
+async function downloadIFC() {
+  let intarray = ifcLoader.ifcManager.ifcAPI.ExportFileAsIFC(
+    model.modelID
+  ) as Uint8Array;
+  downloadBlob(intarray, "addedpset.ifc", "application/octet-stream");
 }
 
 async function createPropertyInPSet(
@@ -244,14 +258,18 @@ async function createPropertyInPSet(
     true
   )) as IfcPropertySet;
 
-  let mypsets = (await ifcLoader.ifcManager.getAllItemsOfType(model.modelID, IFCPROPERTYSET, true))
-  
+  let mypsets = await ifcLoader.ifcManager.getAllItemsOfType(
+    model.modelID,
+    IFCPROPERTYSET,
+    true
+  );
+
   // console.log(JSON.parse(JSON.stringify(mypsets)))
   // console.log(JSON.parse(JSON.stringify(mypsets.filter((pset:IfcPropertySet) => pset.expressID === targetExpressId))))
 
-  let new_property_id = getMaxExpressId() + 1
+  let new_property_id = getMaxExpressId() + 1;
   targetPSet.HasProperties = [
-    ...targetPSet.HasProperties,
+    ...(targetPSet.HasProperties || []),
     new IfcProperty(
       new_property_id,
       IFCPROPERTY,
@@ -259,18 +277,22 @@ async function createPropertyInPSet(
       new IfcText(propertyValue as string)
     ),
   ];
-  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, targetPSet)
-  return new_property_id
+  await ifcLoader.ifcManager.ifcAPI.WriteLine(model.modelID, targetPSet as IfcPropertySet);
+  // ifcLoader.ifcManager.ifcAPI.Init();
+
+  return new_property_id;
 }
 
-function displayPSetsInModal(psets: PropertySet[]) {
+function displayPSetsInModal(psets: PropertySet[], objectid: number) {
   var modal = document.getElementById("myModal");
 
   let header = modal?.getElementsByClassName("modal-header")[0];
   if (header) header.getElementsByTagName("h2")[0].textContent = "Objectinfo";
 
   let footer = modal?.getElementsByClassName("modal-footer")[0];
-  if (footer) footer.getElementsByTagName("h3")[0].textContent = "Objectinfo";
+  if (footer)
+    footer.getElementsByTagName("h3")[0].innerHTML =
+      "<button onclick='downloadIFC'>Download IFC</button>\n<button onclick='createAndDonwloadBCF'>Download BCF</button>\nObjectinfo";
 
   let body = document.getElementById("modal-body");
   if (!body || !modal) return;
@@ -301,6 +323,22 @@ function displayPSetsInModal(psets: PropertySet[]) {
   modal.style.display = "block";
 }
 
+function createAndDonwloadBCF(objectid: number) {
+  let bcf = new BCF();
+  bcf.initBcf();
+  // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
+  bcf.createMarkup(
+    "Rubi BCF Test",
+    "Lukas Schmid",
+    "description",
+    "topicType",
+    "topicStatus",
+    "projectGuid",
+    `ifcObjectGuid:${objectid}`
+  );
+  bcf.downloadBcf();
+}
+
 function getModalInputListener() {
   // create submit
 }
@@ -312,7 +350,8 @@ function init() {
     1,
     1000
   );
-  camera.position.y = 0.17;
+  camera.position.y = 0.22;
+  camera = camera.rotateY(Math.PI);
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
@@ -482,9 +521,11 @@ function onWindowResize() {
 }
 
 const selectionMaterial = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0.6,
   color: 0xff0000,
   depthTest: false,
-  depthWrite: false,
+  // depthWrite: false,
 });
 const preSelectionMaterial = new THREE.MeshBasicMaterial({ color: 0x880000 });
 
@@ -503,8 +544,8 @@ function animate() {
 
     const delta = (time - prevTime) / 1000;
 
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
+    velocity.x -= velocity.x * 40.0 * delta;
+    velocity.z -= velocity.z * 40.0 * delta;
 
     velocity.y -= 9.8 * 10.0 * delta; // 10.0 = mass
 
@@ -549,6 +590,7 @@ window.onmousedown = function (event) {
     const intersections = raycaster.intersectObjects(objects, true);
 
     const found = intersections[0];
+    console.log(intersections);
 
     if (found) {
       const index = found.faceIndex;
@@ -558,12 +600,12 @@ window.onmousedown = function (event) {
 
       if (mouseDown) {
         if (index) id = ifc.getExpressId(geometry, index);
-        createPSet(id, "LukasTest").then((new_id) => 
-          {
-            // console.log("Creating property....")
-           createPropertyInPSet(new_id, "TestProperty", "SUCCESS").then(console.log)
-          }
-        );
+        // createPSet(id, "LukasTest").then((new_id) => {
+        //   // console.log("Creating property....")
+        //   createPropertyInPSet(new_id, "TestProperty", "SUCCESS").then(
+        //     console.log
+        //   );
+        // });
         // console.log("clicked");
         console.log(JSON.parse(JSON.stringify(found)));
         let idlist = intersections.map((intersectedObj) =>
@@ -576,7 +618,7 @@ window.onmousedown = function (event) {
         let new_subset = ifcLoader.ifcManager.createSubset({
           scene: scene,
           modelID: model.modelID,
-          applyBVH: true,
+          // applyBVH: true,
           ids: idlist,
           material: selectionMaterial,
           removePrevious: true,
@@ -586,44 +628,9 @@ window.onmousedown = function (event) {
         for (let id of idlist) {
           ifc.getPropertySets(model.modelID, id, true).then((psets) => {
             // console.log(JSON.parse(JSON.stringify(psets)));
-            displayPSetsInModal(psets);
+            displayPSetsInModal(psets, id);
           });
         }
-
-        // const input = document.createElement("input");
-        // input.type = "text"
-        // input.className = "css-class-name"
-        // input.addEventListener('keypress', function (e) {
-        //     if (e.key === 'Enter') {
-        //         var element = document.createElement('a');
-        //         element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(input.value));
-        //         element.setAttribute('download', "comment.txt");
-        //         document.body.appendChild(element);
-        //         element.click();
-        //         document.body.removeChild(element)
-        //         document.body.removeChild(input)
-        //     }
-        // });
-        // document.body.appendChild(input);
-        // controls.unlock()
-        // input.focus()
-
-        let bcf = new BCF();
-        bcf.initBcf();
-        // ifcProjectGuid = "", ifcObjectGuid = "", ifcpath = "", ifcfilename = "", fileIsoTimeString = ""
-        bcf.createMarkup(
-          "Rubi BCF Test",
-          "Lukas Schmid",
-          "description",
-          "topicType",
-          "topicStatus",
-          "projectGuid",
-          `ifcObjectGuid:${id}`
-        );
-        bcf.downloadBcf();
-        // // oldColorObject[found.object] = found.object.material.color
-        // // found.material.color.set('orange')
-        // console.log(id);
       }
     }
   }
@@ -643,7 +650,7 @@ async function loadIFC() {
     disposeBoundsTree,
     acceleratedRaycast
   );
-  await ifcLoader.ifcManager.setWasmPath("./")
+  await ifcLoader.ifcManager.setWasmPath("./");
   // await ifcLoader.ifcManager.ifcAPI.SetWasmPath("threejs-ifcjs/")
 
   model = await ifcLoader.loadAsync("IFC/01.ifc");
@@ -651,154 +658,6 @@ async function loadIFC() {
   objects.push(model);
 
   // console.log(model);
-
-  const walls = await ifcLoader.ifcManager.getAllItemsOfType(0, IFCWALL, false);
-  const wallsStandard = await ifcLoader.ifcManager.getAllItemsOfType(
-    0,
-    IFCWALLSTANDARDCASE,
-    false
-  );
-  const slabs = await ifcLoader.ifcManager.getAllItemsOfType(0, IFCSLAB, false);
-  const doors = await ifcLoader.ifcManager.getAllItemsOfType(0, IFCDOOR, false);
-  const windows = await ifcLoader.ifcManager.getAllItemsOfType(
-    0,
-    IFCWINDOW,
-    false
-  );
-  const members = await ifcLoader.ifcManager.getAllItemsOfType(
-    0,
-    IFCMEMBER,
-    false
-  );
-  const plates = await ifcLoader.ifcManager.getAllItemsOfType(
-    0,
-    IFCPLATE,
-    false
-  );
-
-  // const subset = await ifcLoader.ifcManager.createSubset({
-  //   ids: [
-  //     ...walls,
-  //     ...wallsStandard,
-  //     ...slabs,
-  //     ...doors,
-  //     ...windows,
-  //     ...members,
-  //     ...plates,
-  //   ],
-  //   scene,
-  //   removePrevious: true,
-  //   modelID: 0,
-  //   applyBVH: true,
-  // });
-
-  // Voxelize
-  // const resolution = 0.5;
-  // const { min, max } = subset.geometry.boundingBox || {
-  //   min: { x: 0, y: 0, z: 0 },
-  //   max: { x: 0, y: 0, z: 0 },
-  // };
-
-  // const voxelCollider = new Box3();
-  // voxelCollider.min.set(-resolution / 2, -resolution / 2, -resolution / 2);
-  // voxelCollider.max.set(resolution / 2, resolution / 2, resolution / 2);
-
-  // const voxelizationSize: xyz = {
-  //   x: Math.ceil((max.x - min.x) / resolution),
-  //   y: Math.ceil((max.y - min.y) / resolution),
-  //   z: Math.ceil((max.z - min.z) / resolution),
-  // };
-
-  // // 0 is not visited, 1 is empty, 2 is filled
-  // const voxels: Uint8Array[][] = newVoxels(voxelizationSize);
-
-  // const voxelGeometry = new BoxGeometry(resolution, resolution, resolution);
-  // const green = new MeshLambertMaterial({
-  //   color: 0x00ff00,
-  //   transparent: true,
-  //   opacity: 0.2,
-  // });
-  // const voxelMesh = new Mesh(voxelGeometry, green);
-  // scene.add(voxelMesh);
-
-  // const transformMatrix = new Matrix4();
-
-  // const origin = [
-  //   min.x + resolution / 2,
-  //   min.y + resolution / 2,
-  //   min.z + resolution / 2,
-  // ];
-
-  // const filledVoxelsMatrices: Matrix4[] = [];
-  // const emptyVoxelsMatrices: Matrix4[] = [];
-
-  // // Compute voxels
-  // for (let i = 0; i < voxelizationSize.x; i++) {
-  //   for (let j = 0; j < voxelizationSize.y; j++) {
-  //     for (let k = 0; k < voxelizationSize.z; k++) {
-  //       voxelMesh.position.set(
-  //         origin[0] + i * resolution,
-  //         origin[1] + j * resolution,
-  //         origin[2] + k * resolution
-  //       );
-
-  //       voxelMesh.updateMatrixWorld();
-  //       transformMatrix
-  //         .copy(subset.matrixWorld)
-  //         .invert()
-  //         .multiply(voxelMesh.matrixWorld);
-  //       const hit = subset.geometry.boundsTree?.intersectsBox(
-  //         voxelCollider,
-  //         transformMatrix
-  //       );
-
-  //       voxels[i][j][k] = hit ? 2 : 1;
-
-  //       const array = hit ? filledVoxelsMatrices : emptyVoxelsMatrices;
-  //       array.push(voxelMesh.matrixWorld.clone());
-  //     }
-  //   }
-  // }
-
-  // // Representation
-  // const filledVoxels = new InstancedMesh(
-  //   voxelGeometry,
-  //   green,
-  //   filledVoxelsMatrices.length
-  // );
-
-  // let counter = 0;
-  // for (let matrix of filledVoxelsMatrices) {
-  //   filledVoxels.setMatrixAt(counter++, matrix);
-  // }
-
-  // scene.add(filledVoxels);
-
-  // function newVoxels(voxelizationSize: xyz) {
-  //   const newVoxels = [];
-  //   for (let i = 0; i < voxelizationSize.x; i++) {
-  //     const newArray: Uint8Array[] = [];
-  //     newVoxels.push(newArray);
-  //     for (let j = 0; j < voxelizationSize.y; j++) {
-  //       newArray.push(new Uint8Array(voxelizationSize.z));
-  //     }
-  //   }
-  //   return newVoxels;
-  // }
 }
-
-// function getContextTrueNorthRotation(context, rotation = {value: 0}) {
-//
-//     if (context.TrueNorth.DirectionRatios) {
-//         const ratios = context.TrueNorth.DirectionRatios.map(item => item.value);
-//         rotation.value += (Math.atan2(ratios[1], ratios[0]) - Math.PI / 2);
-//     }
-//
-//     if (context.ParentContext) {
-//         getContextTrueNorthRotation(context.ParentContext, rotation);
-//     }
-//
-//     return rotation.value;
-// }
 
 loadIFC();
